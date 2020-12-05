@@ -6,17 +6,16 @@ import collections, functools, math, os.path, sys, traceback
 # Represent each potential sum we check as a tuple of an `AxisState` for each axis. This `AxisState`
 # represents the index within the input list of integers for the axis, as well as the inclusive
 # minimum and maximum indices being considered (to facilitate binary-search per-axis).
-class AxisState(collections.namedtuple('AxisState', ['index', 'min', 'max'])):
-  """Override hash/eq that we only consider the `index` field for uniqueness."""
+AxisState = collections.namedtuple('AxisState', ['index', 'min', 'max'])
+
+
+class State(tuple):
+  """Container for a tuple of AxisState's that does some intelligent hashing."""
   def __hash__(self):
-    return self.index
+    return hash(tuple(sorted(axis.index for axis in self)))
 
   def __eq__(self, o):
-    return isinstance(o, AxisState) and self.index == o.index
-
-  def is_valid(self):
-    """Sanity check that our bounds are valid, returns true if valid."""
-    return self.min <= self.index <= self.max
+    return isinstance(o, State) and hash(self) == hash(o)
 
 
 def get_children(state, is_decreasing):
@@ -24,6 +23,8 @@ def get_children(state, is_decreasing):
 
   is_decreasing determines whether we generate children in a decreasing or increasing direction.
   """
+  # Track which indices are used so we can avoid repeated indices in child states.
+  used_indices = {axis.index for axis in state}
   children = []
   for idx, axis in enumerate(state):
     # Generate a candidate child for each axis and check for validity.
@@ -34,30 +35,27 @@ def get_children(state, is_decreasing):
 
     if is_decreasing:
       # Binary-search down on this axis, use current index - 1 as the new (inclusive) max.
-      axis_min, axis_max = axis.min, axis.index - 1
+      child_min, child_max = axis.min, axis.index - 1
     else:
       # Binary-search up on this axis, use current index + 1 as the new (inclusive) min. 
-      axis_min, axis_max = axis.index + 1, axis.max
+      child_min, child_max = axis.index + 1, axis.max
 
-    # States' axis indices *must* be monotonically decreasing, this is an invalid state. Attempt
-    # to find the nearest valid state that doesn't invalidate the child axis min/max constraints.
-    prev_axis_idx = state[idx - 1].index if idx > 0 else None
-    next_axis_idx = state[idx + 1].index if idx < len(state) - 1 else None
-    index_min = max(axis_min, next_axis_idx + 1 if next_axis_idx is not None else axis_min)
-    index_max = min(axis_max, prev_axis_idx - 1 if prev_axis_idx is not None else axis_max)
-    if index_min > index_max:
-      continue  # This means there is no valid index we can choose for this child, skip it.
+    # Pick an index in the center of the valid range, work out from there in case of collisions.
+    index = (child_min + child_max) // 2
+    # offset, multiplier simply jump back and forth past the midpoint looking for an available
+    # index to use.
+    offset, multiplier = 1, 1
+    while index in used_indices and child_min <= index <= child_max:
+      index += offset * multiplier
+      offset, multiplier = offset + 1, multiplier * -1
 
-    # Pick an index in the center of the valid range.
-    child_axis = AxisState((index_min + index_max) // 2, axis_min, axis_max)
+    if not child_min <= index <= child_max:
+      continue  # Ran out of indices to try, no valid child to be had here.
 
-    # This Should Never Happen (tm), but just in case, do the thing.
-    if not child_axis.is_valid():
-      print('Somehow, we managed to find an invalid axis: %s' % child_axis)
-      continue
+    child = AxisState(index, child_min, child_max)
 
     # Generate a new state tuple, swapping out the child for the right axis.
-    children.append(state[:idx] + (child_axis,) + state[idx + 1:])
+    children.append(State(state[:idx] + (child,) + state[idx + 1:]))
   return children
 
 
@@ -86,7 +84,7 @@ def find_sum(input_values, target_sum, number_of_axes):
   #   (AxisState(2, 0, 2), AxisState(1, 0, 1), AxisState(0, 0, 0))
   #
   # Which can't have any valid children, so just that one state will be checked.
-  state_queue = collections.deque([tuple(
+  state_queue = collections.deque([State(
       AxisState(start_index - axis, 0, len(input_values) - axis - 1)
       for axis in range(number_of_axes))])
 
