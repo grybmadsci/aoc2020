@@ -34,20 +34,26 @@ def get_children(state, is_decreasing):
 
     if is_decreasing:
       # Binary-search down on this axis, use current index - 1 as the new (inclusive) max.
-      child_axis = AxisState((axis.min + axis.index) // 2, axis.min, axis.index - 1)
+      axis_min, axis_max = axis.min, axis.index - 1
     else:
       # Binary-search up on this axis, use current index + 1 as the new (inclusive) min. 
-      child_axis = AxisState(math.ceil((axis.index + axis.max) / 2), axis.index + 1, axis.max)
+      axis_min, axis_max = axis.index + 1, axis.max
+
+    # States' axis indices *must* be monotonically decreasing, this is an invalid state. Attempt
+    # to find the nearest valid state that doesn't invalidate the child axis min/max constraints.
+    prev_axis_idx = state[idx - 1].index if idx > 0 else None
+    next_axis_idx = state[idx + 1].index if idx < len(state) - 1 else None
+    index_min = max(axis_min, next_axis_idx + 1 if next_axis_idx is not None else axis_min)
+    index_max = min(axis_max, prev_axis_idx - 1 if prev_axis_idx is not None else axis_max)
+    if index_min > index_max:
+      continue  # This means there is no valid index we can choose for this child, skip it.
+
+    # Pick an index in the center of the valid range.
+    child_axis = AxisState((index_min + index_max) // 2, axis_min, axis_max)
 
     # This Should Never Happen (tm), but just in case, do the thing.
     if not child_axis.is_valid():
-      continue
-
-    if idx > 0 and state[idx - 1].index <= child_axis.index:
-      # States' axis indices *must* be monotonically decreasing, this is an invalid state.
-      continue
-    if idx < len(state) - 1 and state[idx + 1].index >= child_axis.index:
-      # Similarly, but this time the axis after child_axis is in violation, still invalid.
+      print('Somehow, we managed to find an invalid axis: %s' % child_axis)
       continue
 
     # Generate a new state tuple, swapping out the child for the right axis.
@@ -96,7 +102,8 @@ def find_sum(input_values, target_sum, number_of_axes):
     # when enqueue'ing children later.
     if current_state in checked_states:
       continue
-    print('Current: %s' % (current_state,))
+    cur_vals = [input_values[c.index] for c in current_state]
+    print('Current: %s %s (%s)' % (current_state, cur_vals, sum(cur_vals)))
     checked_states.add(current_state)
     current_sum = sum(input_values[axis.index] for axis in current_state)
     total_sums_checked += 1
