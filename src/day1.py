@@ -92,6 +92,10 @@ def find_sum(input_values, target_sum, number_of_axes):
 
   while len(state_queue) > 0:
     current_state = state_queue.popleft()
+    # The same state might have been enqueue'd by multiple parents, so check this here as well as
+    # when enqueue'ing children later.
+    if current_state in checked_states:
+      continue
     print('Current: %s' % (current_state,))
     checked_states.add(current_state)
     current_sum = sum(input_values[axis.index] for axis in current_state)
@@ -100,9 +104,8 @@ def find_sum(input_values, target_sum, number_of_axes):
       # Hey we found it!
       return total_sums_checked, current_state
     # Keep searching... queue up children we haven't already checked.
-    for child in get_children(current_state, current_sum > target_sum):
-      if child not in checked_states:
-        state_queue.append(child)
+    state_queue.extend(filter(lambda child: child not in checked_states,
+        get_children(current_state, current_sum > target_sum)))
 
   return total_sums_checked, None # No solution found and we ran out of states to check, time to go home.
 
