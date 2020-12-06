@@ -123,3 +123,11 @@ particularly in worst-case scenarios, is drastically better than linear search w
 number of integers being summed (`M` above) gets closer to either bound of `0` or `N` (number of
 input integers), linear search would likely perform better because of the heavily constrained state
 space and overhead of BFS.
+
+## Day 2
+
+This problem's kind of boring, and I can't think of an expecially neat way to make it interesting,
+so you get a disgusting shell solution - a bash command that writes bash commands :wink: Don't look
+too closely at this one, other problems are way more interesting!
+
+
