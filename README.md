@@ -5,6 +5,10 @@ Code solutions to [Advent of Code 2020](https://adventofcode.com/2020) puzzle ch
 Solutions will focus on the spirit of the question, and will include brief descriptions of the
 approach used and why.
 
+All solutions will be executable python3 scripts, with no external dependencies, so to run the
+solution for Day 1, for example, simply run `./day1.py`, which will print a usage message describing
+problem-specific arguments to pass and input format expected.
+
 ## Day 1
 
 #### Find 2 integers summing to 2020 from an input list, then find 3 such integers.
@@ -60,7 +64,6 @@ Checked 12066 summations, whew that was hard work...
 No solution found :( Perhaps you might try bridge.
 
 ```
-
 > No solution, target sum is too high
 
 ```
@@ -73,10 +76,7 @@ Checked 12066 summations, whew that was hard work...
 No solution found :( Perhaps you might try bridge.
 
 ```
-
-
 > No solution, only multiples of 3 can't sum to a non-multiple.
-
 
 ```
 > seq 0 3 300 | ./day1.py 100 5
@@ -88,6 +88,23 @@ Checked 14289 summations, whew that was hard work...
 No solution found :( Perhaps you might try bridge.
 
 ```
+> Pathological worst-case solution (linear search would check over 8 trillion summations)
+
+```
+> seq 1000 | ./day1.py 15 5
+Day 1!
+
+Searching for 5 integers that sum to 15 from a list of 1000 values...
+Closest sum found: 15, [2]=3, [1]=2, [0]=1, [4]=5, [3]=4, Checked 206407 summations so far...
+Checked 206407 summations, whew that was hard work...
+Looks like the numbers [3, 2, 1, 5, 4] add up to 15!
+And their product is 120, just in case you were curious...
+
+```
 
 Overall this was a fun way to solve this problem. This solution could be generalized to sum values
-from different input lists for each axis as well with minor input parsing changes.
+from different input lists for each axis as well with minor input parsing changes. Performance,
+particularly in worst-case scenarios, is drastically better than linear search would be. As the
+number of integers being summed (`M` above) gets closer to either bound of `0` or `N` (number of
+input integers), linear search would likely perform better because of the heavily constrained state
+space and overhead of BFS.
