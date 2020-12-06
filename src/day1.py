@@ -18,8 +18,8 @@ class State(tuple):
     return isinstance(o, State) and hash(self) == hash(o)
 
 
-def get_children(state, is_decreasing):
-  """Get a list of valid children of the given state (tuple of AxisState's).
+def get_children(state: State, is_decreasing: bool) -> [State]:
+  """Get a list of valid children of the given State tuple.
 
   is_decreasing determines whether we generate children in a decreasing or increasing direction.
   """
@@ -59,7 +59,7 @@ def get_children(state, is_decreasing):
   return children
 
 
-def find_sum(input_values, target_sum, number_of_axes):
+def find_sum(input_values: [int], target_sum: int, number_of_axes: int) -> ([State], int):
   """Do a multi-dimensional binary-like-search via breadth-first-search.
   
   Search for `number_of_axes` integers from `input_values` that sum to `target_sum`. Do this by
@@ -67,12 +67,14 @@ def find_sum(input_values, target_sum, number_of_axes):
 
   input_values must be sorted, and number_of_axes must be <= len(input_values)
   """
-  # Out of curiosity, track how many summations we try...
+  # Out of curiosity, track how many summations we try, and how close of a sum we've found.
   total_sums_checked = 0
+  closest_sum = None
+  closest_state = None
 
   # Start out roughly centered in the state space by grabbing the middle value for the first index.
-  # Note that since valid states *must* have monotonically decreasing index values, we do some
-  # boundary checking to make sure we have enough room for all axes' indices.
+  # Note that since valid states may not have duplicate indices, we do some boundary checking to
+  # make sure we have enough room for all axes' indices.
   center_index = len(input_values) // 2  # Center-ish, round down.
   start_index = max(center_index - number_of_axes, 0) + number_of_axes - 1
 
@@ -94,30 +96,38 @@ def find_sum(input_values, target_sum, number_of_axes):
   # consider the `index` field for uniqueness checks, regardless of min/max fields.
   checked_states = set()
 
-  while len(state_queue) > 0:
-    current_state = state_queue.popleft()
-    # The same state might have been enqueue'd by multiple parents, so check this here as well as
-    # when enqueue'ing children later.
-    if current_state in checked_states:
-      continue
-    cur_vals = [input_values[c.index] for c in current_state]
-    print('Current: %s %s (%s)' % (current_state, cur_vals, sum(cur_vals)))
-    checked_states.add(current_state)
-    current_sum = sum(input_values[axis.index] for axis in current_state)
-    total_sums_checked += 1
-    if current_sum == target_sum:
-      # Hey we found it!
-      return total_sums_checked, current_state
-    # Keep searching... queue up children we haven't already checked.
-    state_queue.extend(filter(lambda child: child not in checked_states,
-        get_children(current_state, current_sum > target_sum)))
+  try:
+    while len(state_queue) > 0:
+      current_state = state_queue.popleft()
+      # The same state might have been enqueue'd by multiple parents, so check this here as well as
+      # when enqueue'ing children later.
+      if current_state in checked_states:
+        continue
+      cur_vals = [input_values[c.index] for c in current_state]
+      checked_states.add(current_state)
+      current_sum = sum(input_values[axis.index] for axis in current_state)
+      total_sums_checked += 1
+      if closest_sum is None or abs(current_sum - target_sum) < abs(closest_sum - target_sum):
+        closest_sum = current_sum
+        closest_state = ', '.join(
+          '[%s]=%s' % (axis.index, input_values[axis.index]) for axis in current_state)
+      sys.stdout.write('\rClosest sum found: %d, %s, Checked %d summations so far...          ' %
+            (closest_sum, closest_state, total_sums_checked))
+      if current_sum == target_sum:
+        # Hey we found it!
+        return total_sums_checked, current_state
+      # Keep searching... queue up children we haven't already checked.
+      state_queue.extend(filter(lambda child: child not in checked_states,
+          get_children(current_state, current_sum > target_sum)))
+  
+    return total_sums_checked, None # No solution found and we ran out of states to check, time to go home.
+  finally:
+    print()  # To terminate the status update messages, since they don't print a newline themselves.
 
-  return total_sums_checked, None # No solution found and we ran out of states to check, time to go home.
 
-
-def read_input():
-  """Helper to read integers from stdin, one per line, and sort them. Raises any errors."""
-  return sorted([int(line) for line in sys.stdin])
+def read_input(input_file) -> [int]:
+  """Helper to read integers from file, one per line, and sort them. Raises any errors."""
+  return sorted([int(line) for line in input_file])
 
 
 # Print out a handy usage message, in case someone doesn't know how to run me (:
@@ -147,7 +157,7 @@ def main(argv):
     usage()
 
   try:
-    input_values = read_input()
+    input_values = read_input(sys.stdin)
   except IOError:
     print('IOError reading input from stdin, what did you do?!')
     return
@@ -170,9 +180,9 @@ def main(argv):
     print('No solution found :( Perhaps you might try bridge.')
   else:
     solution_values = [input_values[axis.index] for axis in solution]
-    print('Looks like the numbers %s add up to %s! And their product is %d, '
-          'just in case you were curious...' %
-          (solution_values, target_sum, functools.reduce(lambda a, b: a * b, solution_values)))
+    print('Looks like the numbers %s add up to %s!' % (solution_values, target_sum))
+    print('And their product is %d, just in case you were curious...' %
+          functools.reduce(lambda a, b: a * b, solution_values))
 
 
 if __name__ == '__main__':
