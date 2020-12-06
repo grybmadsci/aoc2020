@@ -46,22 +46,9 @@ factor of 4-5 in a couple experiments. States are still treated as duplicates fo
 checks if they have the same indices in any order (using custom `__hash__` and `__eq__`
 implementations). 
 
-Some anecdotal test cases:
+#### Some anecdotal test cases:
 
-#### No solution, target sum is too low
-
-```
-> seq 100 | ./day1.py 5 5
-Day 1!
-
-Searching for 5 integers that sum to 5 from a list of 100 values...
-Closest sum found: 15, [1]=2, [0]=1, [4]=5, [3]=4, [2]=3, Checked 12066 summations so far...
-Checked 12066 summations, whew that was hard work...
-No solution found :( Perhaps you might try bridge.
-
-```
-
-#### No solution, target sum is too high
+> No solution, target sum is too low
 
 ```
 > seq 100 | ./day1.py 5 5
@@ -74,8 +61,21 @@ No solution found :( Perhaps you might try bridge.
 
 ```
 
+> No solution, target sum is too high
 
-#### No solution, only multiples of 3 can't sum to a non-multiple.
+```
+> seq 100 | ./day1.py 5 5
+Day 1!
+
+Searching for 5 integers that sum to 5 from a list of 100 values...
+Closest sum found: 15, [1]=2, [0]=1, [4]=5, [3]=4, [2]=3, Checked 12066 summations so far...
+Checked 12066 summations, whew that was hard work...
+No solution found :( Perhaps you might try bridge.
+
+```
+
+
+> No solution, only multiples of 3 can't sum to a non-multiple.
 
 
 ```
